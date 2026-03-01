@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const { getDB } = require("../db/connection");
+const { getDB } = require("../../db/connection");
 
 const login = async (req, res) => {
   try {

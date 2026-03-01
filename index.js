@@ -4,12 +4,14 @@ require("dotenv").config();
 
 const { connectDB } = require("./db/connection");
 
-const authRoutes = require("./routes/auth");
+// Declare all routes
+const authRoutes = require("./routes/auth/auth");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Declare routes for a module
 app.use("/auth", authRoutes);
 
 const PORT = process.env.PORT || 3000;

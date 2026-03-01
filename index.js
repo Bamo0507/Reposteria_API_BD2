@@ -8,6 +8,7 @@ const { connectDB } = require("./db/connection");
 const authRoutes = require("./routes/auth/auth");
 const adminReviewsRoutes = require("./routes/admin/adminResenias")
 const adminOrdersRoutes = require("./routes/admin/adminPedidos")
+const adminProductsRoutes = require("./routes/admin/adminProductos")
 
 const app = express();
 app.use(cors());
@@ -15,8 +16,9 @@ app.use(express.json());
 
 // Declare routes for a module
 app.use("/auth", authRoutes);
-app.use("/admin", adminReviewsRoutes);
-app.use("/admin", adminOrdersRoutes);
+app.use("/admin/resenias", adminReviewsRoutes);
+app.use("/admin/pedidos", adminOrdersRoutes);
+app.use("/admin/productos", adminProductsRoutes)
 
 const PORT = process.env.PORT || 3000;
 

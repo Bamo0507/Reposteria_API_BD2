@@ -1,0 +1,100 @@
+const { getDB } = require("../../db/connection")
+const { ObjectId } = require("mongodb");
+
+// Get all reviews
+const getReviewsAdmin = async (req, res) => {
+  try {
+    const db = getDB();
+    const { page = 1, pageSize = 10, puntuacion, fechaInicio, fechaFin, q } = req.query;
+    const skip = (page - 1) * pageSize;
+
+    // Si hay búsqueda de texto
+    if (q) {
+      const filtro = { $text: { $search: q } };
+      const [data, total] = await Promise.all([
+        db.collection("resenias").find(filtro, {
+          projection: {
+            titulo: 1,
+            descripcion: 1,
+            puntuacion: 1,
+            fecha: 1,
+            score: { $meta: "textScore" },
+          },
+        }).sort({ score: { $meta: "textScore" } }).skip(skip).limit(Number(pageSize)).toArray(),
+        db.collection("resenias").countDocuments(filtro),
+      ]);
+      return res.json({ data, total });
+    }
+
+    // Filtro normal
+    const filtro = {};
+    if (puntuacion) filtro.puntuacion = Number(puntuacion);
+    if (fechaInicio && fechaFin) {
+      filtro.fecha = {
+        $gte: new Date(fechaInicio),
+        $lte: new Date(fechaFin),
+      };
+    }
+
+    const [data, total] = await Promise.all([
+      db.collection("resenias").find(filtro, {
+        projection: {
+          titulo: 1,
+          descripcion: 1,
+          puntuacion: 1,
+          fecha: 1,
+        },
+      }).sort({ fecha: -1 }).skip(skip).limit(Number(pageSize)).toArray(),
+      db.collection("resenias").countDocuments(filtro),
+    ]);
+
+    res.json({ data, total });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+// Get review by id
+const getReviewById = async (req, res) => {
+  try {
+    const db = getDB();
+    const [resenia] = await db.collection("resenias").aggregate([
+      { $match: { _id: new ObjectId(req.params.id) } },
+      { $lookup: { from: "usuarios", localField: "id_usuario", foreignField: "_id", as: "usuario" } },
+      { $unwind: "$usuario" },
+      { $lookup: { from: "restaurantes", localField: "id_restaurante", foreignField: "_id", as: "restaurante" } },
+      { $unwind: "$restaurante" },
+      { $lookup: { from: "pedidos", localField: "id_pedido", foreignField: "_id", as: "pedido" } },
+      { $unwind: "$pedido" },
+      { $unwind: "$pedido.productos" },
+      { $lookup: { from: "productos", localField: "pedido.productos.producto_id", foreignField: "_id", as: "producto_info" } },
+      { $unwind: "$producto_info" },
+      {
+        $group: {
+          _id: "$_id",
+          titulo: { $first: "$titulo" },
+          descripcion: { $first: "$descripcion" },
+          puntuacion: { $first: "$puntuacion" },
+          fecha: { $first: "$fecha" },
+          nombre_usuario: { $first: "$usuario.nombre_usuario" },
+          nombre_restaurante: { $first: "$restaurante.nombre_restaurante" },
+          total: { $first: "$pedido.total" },
+          productos: {
+            $push: {
+              nombre: "$producto_info.nombre",
+              cantidad: "$pedido.productos.cantidad",
+              precio_unitario: "$pedido.productos.precio_unitario",
+            },
+          },
+        },
+      },
+    ]).toArray();
+
+    if (!resenia) return res.status(404).json({ error: "Reseña no encontrada" });
+    res.json(resenia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+module.exports = { getReviewsAdmin, getReviewById };

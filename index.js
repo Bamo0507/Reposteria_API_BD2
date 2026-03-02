@@ -6,10 +6,15 @@ const { connectDB } = require("./db/connection");
 
 // Declare all routes
 const authRoutes = require("./routes/auth/auth");
+
+//admin
 const adminReviewsRoutes = require("./routes/admin/adminResenias")
 const adminOrdersRoutes = require("./routes/admin/adminPedidos")
 const adminProductsRoutes = require("./routes/admin/adminProductos")
 const adminRestaurantsRoutes = require("./routes/admin/adminRestaurantes")
+
+// Cliente
+const clientOrdersRoutes = require("./routes/client/clientePedidos");
 
 const app = express();
 app.use(cors());
@@ -21,6 +26,9 @@ app.use("/admin/resenias", adminReviewsRoutes);
 app.use("/admin/pedidos", adminOrdersRoutes);
 app.use("/admin/productos", adminProductsRoutes)
 app.use("/admin/restaurantes", adminRestaurantsRoutes)
+
+// Cliente
+app.use("/cliente/pedidos", clientOrdersRoutes);
 
 const PORT = process.env.PORT || 3000;
 

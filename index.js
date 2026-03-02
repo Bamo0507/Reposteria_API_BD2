@@ -15,6 +15,7 @@ const adminRestaurantsRoutes = require("./routes/admin/adminRestaurantes")
 
 // Cliente
 const clientOrdersRoutes = require("./routes/client/clientePedidos");
+const clientReviewsRoutes = require("./routes/client/clienteResenias");
 
 const app = express();
 app.use(cors());
@@ -29,6 +30,7 @@ app.use("/admin/restaurantes", adminRestaurantsRoutes)
 
 // Cliente
 app.use("/cliente/pedidos", clientOrdersRoutes);
+app.use("/cliente/resenias", clientReviewsRoutes);
 
 const PORT = process.env.PORT || 3000;
 

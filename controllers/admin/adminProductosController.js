@@ -50,7 +50,7 @@ const getProducts = async (req, res) => {
     const db = getDB();
     const productos = await db.collection("productos").find(
       {},
-      { projection: { nombre: 1, imagen: 1, precio: 1 } }
+      { projection: { nombre: 1, imagen: 1, precio: 1, esActivo: 1 } }
     ).sort({ nombre: 1 }).toArray();
 
     // Agregar imagen en base64 a cada producto

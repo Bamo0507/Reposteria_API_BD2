@@ -7,7 +7,7 @@ const getRestaurants = async (req, res) => {
     const db = getDB();
     const data = await db.collection("restaurantes").find(
       {},
-      { projection: { nombre_restaurante: 1, ubicacion: 1, telefono: 1 } }
+      { projection: { nombre_restaurante: 1, ubicacion: 1, telefono: 1, horarios_de_atencion: 1, esActivo: 1 } }
     ).sort({ nombre_restaurante: 1 }).toArray();
 
     res.json(data);

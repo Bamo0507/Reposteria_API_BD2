@@ -23,6 +23,8 @@ const getClientReviews = async (req, res) => {
           {
             $project: {
               nombre_restaurante: "$restaurante.nombre_restaurante",
+              titulo: 1,
+              descripcion: 1,
               fecha_pedido: "$pedido.fecha_pedido",
               puntuacion: 1,
               fecha: 1,
@@ -48,6 +50,8 @@ const getClientReviews = async (req, res) => {
         {
           $project: {
             nombre_restaurante: "$restaurante.nombre_restaurante",
+            titulo: 1,
+            descripcion: 1,
             fecha_pedido: "$pedido.fecha_pedido",
             puntuacion: 1,
             fecha: 1,
@@ -143,10 +147,54 @@ const deleteReviews = async (req, res) => {
   }
 };
 
+const getReviewById = async (req, res) => {
+  try {
+    const db = getDB();
+    const [resenia] = await db.collection("resenias").aggregate([
+      { $match: { _id: new ObjectId(req.params.id) } },
+      { $lookup: { from: "usuarios", localField: "id_usuario", foreignField: "_id", as: "usuario" } },
+      { $unwind: "$usuario" },
+      { $lookup: { from: "restaurantes", localField: "id_restaurante", foreignField: "_id", as: "restaurante" } },
+      { $unwind: "$restaurante" },
+      { $lookup: { from: "pedidos", localField: "id_pedido", foreignField: "_id", as: "pedido" } },
+      { $unwind: "$pedido" },
+      { $unwind: "$pedido.productos" },
+      { $lookup: { from: "productos", localField: "pedido.productos.producto_id", foreignField: "_id", as: "producto_info" } },
+      { $unwind: "$producto_info" },
+      {
+        $group: {
+          _id: "$_id",
+          titulo: { $first: "$titulo" },
+          descripcion: { $first: "$descripcion" },
+          puntuacion: { $first: "$puntuacion" },
+          fecha: { $first: "$fecha" },
+          fecha_pedido: { $first: "$pedido.fecha_pedido" },
+          nombre_usuario: { $first: "$usuario.nombre_usuario" },
+          nombre_restaurante: { $first: "$restaurante.nombre_restaurante" },
+          total: { $first: "$pedido.total" },
+          productos: {
+            $push: {
+              nombre: "$producto_info.nombre",
+              cantidad: "$pedido.productos.cantidad",
+              precio_unitario: "$pedido.productos.precio_unitario",
+            },
+          },
+        },
+      },
+    ]).toArray();
+
+    if (!resenia) return res.status(404).json({ error: "Reseña no encontrada" });
+    res.json(resenia);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   getClientReviews,
   createReview,
   updateReview,
   deleteReview,
   deleteReviews,
+  getReviewById,
 };

@@ -5,14 +5,42 @@ const { getDB } = require("../../db/connection");
 const getClientReviews = async (req, res) => {
   try {
     const db = getDB();
-    const { page = 1, pageSize = 10, userId } = req.query;
+    const { page = 1, pageSize = 10, userId, q } = req.query;
     const skip = (page - 1) * pageSize;
 
-    const filtro = { id_usuario: new ObjectId(userId) };
+    const filtroBase = { id_usuario: new ObjectId(userId) };
+
+    // Si hay búsqueda de texto
+    if (q) {
+      const filtro = { ...filtroBase, $text: { $search: q } };
+      const [data, total] = await Promise.all([
+        db.collection("resenias").aggregate([
+          { $match: filtro },
+          { $lookup: { from: "restaurantes", localField: "id_restaurante", foreignField: "_id", as: "restaurante" } },
+          { $unwind: "$restaurante" },
+          { $lookup: { from: "pedidos", localField: "id_pedido", foreignField: "_id", as: "pedido" } },
+          { $unwind: "$pedido" },
+          {
+            $project: {
+              nombre_restaurante: "$restaurante.nombre_restaurante",
+              fecha_pedido: "$pedido.fecha_pedido",
+              puntuacion: 1,
+              fecha: 1,
+              score: { $meta: "textScore" },
+            },
+          },
+          { $sort: { score: { $meta: "textScore" } } },
+          { $skip: skip },
+          { $limit: Number(pageSize) },
+        ]).toArray(),
+        db.collection("resenias").countDocuments(filtro),
+      ]);
+      return res.json({ data, total });
+    }
 
     const [data, total] = await Promise.all([
       db.collection("resenias").aggregate([
-        { $match: filtro },
+        { $match: filtroBase },
         { $lookup: { from: "restaurantes", localField: "id_restaurante", foreignField: "_id", as: "restaurante" } },
         { $unwind: "$restaurante" },
         { $lookup: { from: "pedidos", localField: "id_pedido", foreignField: "_id", as: "pedido" } },
@@ -29,7 +57,7 @@ const getClientReviews = async (req, res) => {
         { $skip: skip },
         { $limit: Number(pageSize) },
       ]).toArray(),
-      db.collection("resenias").countDocuments(filtro),
+      db.collection("resenias").countDocuments(filtroBase),
     ]);
 
     res.json({ data, total });

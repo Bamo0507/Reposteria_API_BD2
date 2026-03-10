@@ -11,6 +11,14 @@ const getReviewsAdmin = async (req, res) => {
     // Si hay búsqueda de texto
     if (q) {
       const filtro = { $text: { $search: q } };
+      if (puntuacion) filtro.puntuacion = Number(puntuacion);
+      if (fechaInicio && fechaFin) {
+        filtro.fecha = {
+          $gte: new Date(fechaInicio),
+          $lte: new Date(fechaFin),
+        };
+      }
+
       const [data, total] = await Promise.all([
         db.collection("resenias").find(filtro, {
           projection: {
